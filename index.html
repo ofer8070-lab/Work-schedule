@@ -507,9 +507,12 @@
         const autoCopyText = document.getElementById('autoCopyText');
         const managementArea = document.getElementById('managementArea');
 
-        let employeeOptions = JSON.parse(localStorage.getItem('global-employees')) || ["", "שאהר", "זיאד", "ענתר", "סופיאן", "נביל", "עסב", "אחמד"];
+        let employeeOptions = JSON.parse(localStorage.getItem('global-employees')) || ["", "שאהר", "זיאד", "ענתר", "סופיאן", "נביל", "עסב", "אחמד", "קווידר", "מודי"];
         
         // רשימת שעות מעודכנת עם קו (-) במקום חץ
+        employeeOptions = [...new Set([...employeeOptions, "קווידר", "מודי"])];
+        localStorage.setItem('global-employees', JSON.stringify(employeeOptions));
+
         let hourOptions = JSON.parse(localStorage.getItem('global-hours-hyphen')) || ["", "6-14", "7-15", "8-16", "9-17", "12-18", "8-18", "14-22", "14-20", "18-22", "22-6"];
         let pairCount = parseInt(localStorage.getItem('global-pair-count')) || 3;
 
