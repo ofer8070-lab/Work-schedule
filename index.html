@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>סידור עבודה - דור אלון</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --day-header-bg: #1e293b;
+            --day-header-hover: #334155;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden; 
+            background-color: #e2e8f0;
+            transition: background-color 0.3s ease;
+        }
+        
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 10px;
+            box-sizing: border-box;
+            align-items: center;
+        }
+
+        #captureArea {
+            background-color: #f8fafc;
+            padding: 12px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 800px;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        /* מצב תצוגה נקייה - מוריד את המסגרת כדי שישתלב יפה במסך */
+        body.preview-active #captureArea {
+            padding: 0;
+            border-radius: 0;
+            max-width: 100%;
+        }
+
+        .header-bar {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 12px 15px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .site-grapes { background-color: #fef08a !important; border: 1px solid #facc15; }
+        
+        .site-mandelbaum { 
+            background-color: #3b82f6 !important; 
+            border: 1px solid #2563eb; 
+            color: #000000 !important; 
+        }
+        .site-mandelbaum .text-slate-800, 
+        .site-mandelbaum #brandLabel { 
+            color: #000000 !important; 
+        }
+
+        .grid-wrapper {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 0;
+            background-color: #cbd5e1;
+            border: 2px solid #94a3b8;
+            width: 100%;
+            position: relative;
+        }
+
+        .cell {
+            background-color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 2px;
+            justify-content: center;
+            align-items: center;
+            border-bottom: 1px solid #f1f5f9;
+            border-left: 1px solid #cbd5e1;
+            min-height: 50px;
+            transition: background-color 0.3s ease;
+        }
+
+        .cell.rule-error {
+            background-color: #fee2e2 !important;
+            border: 2px solid #ef4444 !important;
+        }
+
+        .separator-row { border-bottom: 2px solid #94a3b8 !important; }
+
+        .cell select {
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+            font-size: 14px;
+            background: transparent;
+            text-align: center;
+            text-align-last: center;
+            cursor: pointer;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            color: inherit;
+        }
+
+        /* סגנון ייעודי לשמות העובדים בסידור (Narkisim, 17px ומודגש) */
+        .cell select.employee-select {
+            font-family: 'Narkisim', 'Arial', sans-serif !important;
+            font-weight: bold !important;
+            font-size: 17px !important;
+        }
+        
+        /* סגנון ייעודי לשעות (צבע כחול) */
+        .cell select.hour-select {
+            color: #2563eb !important;
+            font-weight: 800 !important;
+            font-size: 13px !important;
+        }
+        
+        .header-cell {
+            background-color: #1e293b;
+            color: white;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 8px 5px;
+            min-height: 42px;
+            border-left: 1px solid #475569;
+            border-bottom: 1px solid #94a3b8;
+        }
+
+        .day-header {
+            background-color: var(--day-header-bg);
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        
+        .day-header:hover {
+            background-color: var(--day-header-hover);
+            color: #fca5a5;
+        }
+        
+        .day-header:active {
+            transform: scale(0.95);
+        }
+
+        .date-label {
+            font-size: 0.85rem;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .date-input-hidden {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .closed-overlay {
+            background: repeating-linear-gradient(45deg, #fef2f2, #fef2f2 10px, #fee2e2 10px, #fee2e2 20px);
+            border-left: 1px solid #cbd5e1;
+            border-bottom: 2px solid #94a3b8;
+            box-shadow: inset 0 0 0 2px #ef4444;
+            z-index: 10;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .closed-input-wrapper {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .closed-msg-input {
+            transform: rotate(-90deg);
+            width: 500px;
+            text-align: center;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #ef4444;
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            text-shadow: 1px 1px 0px rgba(255,255,255,0.8);
+        }
+        .closed-msg-input::placeholder { color: #f87171; }
+
+        .messages-row {
+            grid-column: span 7;
+            background-color: white;
+            border-top: 2px solid #94a3b8;
+            padding: 12px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center; /* ממורכז עכשיו שאין את התפריט הנגלל */
+            min-height: 85px;
+        }
+
+        .messages-input {
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+            resize: none;
+            color: #ef4444; 
+            font-size: 20px; 
+            font-weight: bold;
+            text-align: center;
+            background: transparent;
+        }
+
+        /* סגנון עבור תיבת התרגום לערבית */
+        .translation-row {
+            grid-column: span 7;
+            background-color: #f8fafc;
+            border-top: 1px dashed #cbd5e1;
+            padding: 8px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 40px;
+        }
+
+        .translation-text {
+            color: #3b82f6; /* צבע כחול כדי להבדיל מהמקור */
+            font-size: 22.5px; /* גודל פונט הוגדל ב-25% */
+            font-weight: 900; /* הדגשה חזקה במיוחד */
+            text-align: center;
+            direction: rtl; /* ערבית נכתבת מימין לשמאל */
+            font-family: 'Amiri', 'Arial', sans-serif; /* פונט שמתאים לערבית אם יש, אחרת ברירת מחדל */
+        }
+
+        .management-area {
+            width: 100%;
+            max-width: 800px;
+            margin-top: 15px;
+            transition: opacity 0.3s ease;
+        }
+
+        .management-row {
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-row {
+            background-color: #fff;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 15px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-table {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            border-collapse: collapse;
+        }
+        .stats-table th { background: #f1f5f9; padding: 10px; border: 1px solid #cbd5e1; text-align: center; width: 50%; font-size: 16.8px; }
+        .stats-table td { padding: 10px; border: 1px solid #cbd5e1; text-align: center; font-weight: bold; font-size: 16.8px; background: white; transition: background-color 0.3s; }
+        
+        .hour-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 32px;
+            padding: 0 8px;
+            border-radius: 999px;
+            font-size: 16px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            transition: background-color 0.3s;
+        }
+
+        .stats-total-row { background-color: #1e293b !important; color: white; }
+        .stats-total-row td { font-size: 18px; border-color: #1e293b; background: transparent; }
+
+        .manage-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+        }
+
+        .manage-box-controls { display: flex; gap: 8px; }
+        .manage-box input { border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px; width: 120px; font-size: 14px; }
+        .manage-box button { background: #22c55e; color: white; width: 28px; height: 28px; border-radius: 6px; font-weight: bold; }
+        
+        .row-toggle-btn {
+            background: #ffffff !important;
+            padding: 4px !important;
+            width: 50px !important;
+            height: 40px !important;
+            border-radius: 8px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 2px solid #6366f1 !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.1s;
+            font-size: 20px;
+        }
+        
+        .row-toggle-btn:active {
+            transform: scale(0.95);
+        }
+
+        #autoCopyContainer {
+            background: #f1f5f9;
+            border: 2px solid #cbd5e1;
+            justify-content: center;
+            padding: 12px;
+            transition: all 0.3s ease;
+        }
+        #autoCopyContainer.active {
+            background: #dcfce7;
+            border: 2px solid #22c55e;
+            box-shadow: 0 4px 6px -1px rgba(34, 197, 94, 0.2);
+        }
+
+        @keyframes copy-flash {
+            0% { background-color: #22c55e; }
+            100% { background-color: inherit; }
+        }
+        .flash-update {
+            animation: copy-flash 0.8s ease-out;
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; }
+            .grid-wrapper { overflow: visible; height: auto; display: grid !important; }
+            .closed-msg-input { font-size: 16px; color: black; }
+            .day-header { background-color: #1e293b !important; color: white !important; }
+            #captureArea { padding: 0; max-width: 100%; }
+            /* הדפסת צבעי רקע של תאים */
+            .cell { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container" id="appContainer">
+        <!-- אזור הצילום המדויק -->
+        <div id="captureArea">
+            <div class="header-bar" id="headerBar">
+                <div class="text-right font-bold text-slate-800 text-lg">סידור עבודה</div>
+                <div class="text-center font-black text-2xl" id="brandLabel">דור אלון</div>
+                <div class="text-left">
+                    <select class="p-1 border rounded text-sm font-bold text-black" id="siteSelect">
+                        <option value="grapes">ענבים</option>
+                        <option value="mandelbaum">מנדלבאום</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid-wrapper" id="mainGrid">
+                <!-- Headers Days -->
+                <div class="header-cell day-header" onclick="handleDayClick(0)" title="לחיצה כפולה למחיקת כל הנתונים ביום זה"><span>ראשון</span></div>
+                <div class="header-cell day-header" onclick="handleDayClick(1)" title="לחיצה כפולה למחיקת כל הנתונים ביום זה"><span>שני</span></div>
+                <div class="header-cell day-header" onclick="handleDayClick(2)" title="לחיצה כפולה למחיקת כל הנתונים ביום זה"><span>שלישי</span></div>
+                <div class="header-cell day-header" onclick="handleDayClick(3)" title="לחיצה כפולה למחיקת כל הנתונים ביום זה"><span>רביעי</span></div>
+                <div class="header-cell day-header" onclick="handleDayClick(4)" title="לחיצה כפולה למחיקת כל הנתונים ביום זה"><span>חמישי</span></div>
+                <div class="header-cell day-header" onclick="handleDayClick(5)" title="לחיצה כפולה למחיקת כל הנתונים ביום זה"><span>שישי</span></div>
+                <div class="header-cell day-header" onclick="handleDayClick(6)" title="לחיצה כפולה למחיקת כל הנתונים ביום זה"><span>שבת</span></div>
+
+                <!-- Headers Dates -->
+                <div class="header-cell" style="position:relative" ondblclick="clearDay(0)" title="לחיצה כפולה למחיקת כל הנתונים ביום זה">
+                    <span id="date-0-label" class="date-label"></span>
+                    <input type="date" id="startDateInput" class="date-input-hidden">
+                </div>
+                <div class="header-cell" ondblclick="clearDay(1)" title="לחיצה כפולה למחיקת כל הנתונים ביום זה"><span class="date-label" id="date-1">-</span></div>
+                <div class="header-cell" ondblclick="clearDay(2)" title="לחיצה כפולה למחיקת כל הנתונים ביום זה"><span class="date-label" id="date-2">-</span></div>
+                <div class="header-cell" ondblclick="clearDay(3)" title="לחיצה כפולה למחיקת כל הנתונים ביום זה"><span class="date-label" id="date-3">-</span></div>
+                <div class="header-cell" ondblclick="clearDay(4)" title="לחיצה כפולה למחיקת כל הנתונים ביום זה"><span class="date-label" id="date-4">-</span></div>
+                <div class="header-cell" ondblclick="clearDay(5)" title="לחיצה כפולה למחיקת כל הנתונים ביום זה"><span class="date-label" id="date-5">-</span></div>
+                <div class="header-cell" ondblclick="clearDay(6)" title="לחיצה כפולה למחיקת כל הנתונים ביום זה"><span class="date-label" id="date-6">-</span></div>
+
+                <!-- Messages Row -->
+                <div class="messages-row" id="messagesRow">
+                    <textarea id="messagesArea" class="messages-input" placeholder="הודעות..."></textarea>
+                </div>
+                
+                <!-- שורת התרגום לערבית (מתחת לשורת ההודעות) -->
+                <div class="translation-row" id="translationRow" style="display: none;">
+                    <div id="translatedText" class="translation-text">מתרגם...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- אזור הניהול -->
+        <div class="management-area" id="managementArea">
+            <div class="management-row">
+                <div id="autoCopyContainer" class="manage-box">
+                    <label class="flex items-center gap-3 cursor-pointer w-full justify-center">
+                        <input type="checkbox" id="autoCopyToggle" style="width: 24px; height: 24px; accent-color: #16a34a; cursor: pointer;">
+                        <span class="font-bold text-slate-700 text-base" id="autoCopyText" style="transition: color 0.3s ease;">מצב שכפול: כבוי (סמן לעריכה מהירה)</span>
+                    </label>
+                </div>
+
+                <div class="manage-box mt-1">
+                    <span class="text-sm font-bold text-slate-600">👥 הוספת עובד:</span>
+                    <div class="manage-box-controls">
+                        <input type="text" id="newEmployeeInput" placeholder="שם...">
+                        <button onclick="addEmployee()">+</button>
+                    </div>
+                </div>
+                <div class="manage-box">
+                    <span class="text-sm font-bold text-slate-600">⏰ הוספת שעות:</span>
+                    <div class="manage-box-controls">
+                        <input type="text" id="newHourInput" placeholder="שעה...">
+                        <button onclick="addHour()">+</button>
+                    </div>
+                </div>
+                
+                <div class="flex justify-center mt-3 gap-4">
+                    <!-- כפתור שיתוף תמונה -->
+                    <button class="row-toggle-btn px-6 py-2" onclick="shareSchedule()" style="width: auto !important; height: auto !important; border-color: #3b82f6 !important; background: #eff6ff !important; color: #1d4ed8; font-weight: bold; font-size: 18px; border-width: 3px !important;" title="צלם מסך ושתף">
+                        📸 שתף מסך
+                    </button>
+
+                    <!-- כפתור שינוי צבע הכותרות -->
+                    <button class="row-toggle-btn" onclick="toggleHeaderColor()" style="border-color: #ec4899 !important;" title="שנה צבע כותרות">
+                        🎨
+                    </button>
+
+                    <!-- כפתור שינוי פלטת צבעי עובדים -->
+                    <button class="row-toggle-btn" onclick="toggleEmployeeColors()" style="border-color: #22c55e !important; background: #f0fdf4 !important;" title="החלף פלטת צבעים לעובדים">
+                        🧑‍🎨
+                    </button>
+                    
+                    <!-- כפתור הוספת/הסרת שורות -->
+                    <button id="rowToggleBtn" class="row-toggle-btn" title="לחיצה להוספה | לחיצה כפולה להסרה">
+                        <svg width="30" height="22" viewBox="0 0 100 75" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M0 5H100" stroke="#4B5563" stroke-width="6"/>
+                            <path d="M0 37.5H100" stroke="#4B5563" stroke-width="6"/>
+                            <path d="M0 70H100" stroke="#4B5563" stroke-width="6"/>
+                            <path d="M5 0V75" stroke="#4B5563" stroke-width="6"/>
+                            <path d="M28 0V75" stroke="#4B5563" stroke-width="6"/>
+                            <path d="M51 0V75" stroke="#4B5563" stroke-width="6"/>
+                            <path d="M74 0V75" stroke="#4B5563" stroke-width="6"/>
+                            <path d="M97 0V75" stroke="#4B5563" stroke-width="6"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="stats-row" id="statsRow">
+                <h3 class="font-bold text-center text-slate-700 mb-4">📊 סיכום שעות שבועי</h3>
+                <div id="statsTableContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const grid = document.getElementById('mainGrid');
+        const siteSelect = document.getElementById('siteSelect');
+        const messagesArea = document.getElementById('messagesArea');
+        const headerBar = document.getElementById('headerBar');
+        const brandLabel = document.getElementById('brandLabel');
+        const startDateInput = document.getElementById('startDateInput');
+        const date0Label = document.getElementById('date-0-label');
+        const messagesRow = document.getElementById('messagesRow');
+        const translationRow = document.getElementById('translationRow');
+        const translatedText = document.getElementById('translatedText');
+        const statsTableContainer = document.getElementById('statsTableContainer');
+        const rowToggleBtn = document.getElementById('rowToggleBtn');
+        
+        const autoCopyToggle = document.getElementById('autoCopyToggle');
+        const autoCopyContainer = document.getElementById('autoCopyContainer');
+        const autoCopyText = document.getElementById('autoCopyText');
+        const managementArea = document.getElementById('managementArea');
+
+        let employeeOptions = JSON.parse(localStorage.getItem('global-employees')) || ["", "שאהר", "זיאד", "ענתר", "סופיאן", "נביל", "עסב", "אחמד"];
+        
+        // רשימת שעות מעודכנת עם קו (-) במקום חץ
+        let hourOptions = JSON.parse(localStorage.getItem('global-hours-hyphen')) || ["", "6-14", "7-15", "8-16", "9-17", "12-18", "8-18", "14-22", "14-20", "18-22", "22-6"];
+        let pairCount = parseInt(localStorage.getItem('global-pair-count')) || 3;
+
+        // 10 פלטות צבעים מסודרות בזיגזג - כך שכל עובד עוקב יקבל צבע ממשפחה שונה לחלוטין!
+        // למשל: [כחול, צהוב, ורוד, ירוק, סגול, כתום, תכלת, אדום, ירוק-ליים, חום, טורקיז, אפור]
+        const employeeColorPalettes = [
+            /* 1. קשת צבעים (מגוון מושלם) */   ['#bfdbfe', '#fef08a', '#fbcfe8', '#bbf7d0', '#e9d5ff', '#fed7aa', '#99f6e4', '#fecaca', '#d9f99d', '#e5e7eb', '#bae6fd', '#fde047'],
+            /* 2. פסטל עז ניגודי */            ['#fca5a5', '#93c5fd', '#86efac', '#fde047', '#c4b5fd', '#fdba74', '#f9a8d4', '#67e8f9', '#bef264', '#d1d5db', '#f87171', '#38bdf8'],
+            /* 3. טבע וקונטרסט */             ['#bbf7d0', '#fbcfe8', '#fef08a', '#bfdbfe', '#e9d5ff', '#fed7aa', '#a7f3d0', '#fecaca', '#fde68a', '#99f6e4', '#d8b4fe', '#fdba74'],
+            /* 4. עמוק ובהיר מעורב */          ['#93c5fd', '#fcd34d', '#f9a8d4', '#86efac', '#c4b5fd', '#fb923c', '#67e8f9', '#f87171', '#d9f99d', '#9ca3af', '#bae6fd', '#fef08a'],
+            /* 5. שקיעה ואוקיינוס */           ['#fed7aa', '#bae6fd', '#fecaca', '#99f6e4', '#fde047', '#e9d5ff', '#fbcfe8', '#bbf7d0', '#fdba74', '#7dd3fc', '#fca5a5', '#5eead4'],
+            /* 6. פירות ומים */                ['#f9a8d4', '#86efac', '#fde047', '#93c5fd', '#c4b5fd', '#fed7aa', '#67e8f9', '#fecaca', '#d9f99d', '#e2e8f0', '#f472b6', '#4ade80'],
+            /* 7. ניאון רך */                  ['#67e8f9', '#fcd34d', '#f9a8d4', '#bef264', '#c4b5fd', '#fdba74', '#7dd3fc', '#fca5a5', '#86efac', '#e9d5ff', '#38bdf8', '#fef08a'],
+            /* 8. קלאסי משרדי ניגודי */        ['#e2e8f0', '#fed7aa', '#bfdbfe', '#bbf7d0', '#fbcfe8', '#fef08a', '#e9d5ff', '#d1d5db', '#fecaca', '#99f6e4', '#e5e7eb', '#fdba74'],
+            /* 9. גווני אדמה ושמיים */         ['#fef08a', '#93c5fd', '#fdba74', '#bbf7d0', '#fca5a5', '#e9d5ff', '#fcd34d', '#bae6fd', '#f87171', '#d9f99d', '#fed7aa', '#7dd3fc'],
+            /* 10. צבעי יסוד בהירים מופרדים */ ['#ffb3ba', '#bae1ff', '#ffffba', '#e8baff', '#baffc9', '#ffdfba', '#ffb3ff', '#c4ffc4', '#ffc4c4', '#e0e0e0', '#c4c4ff', '#ffe4c4']
+        ];
+
+        let currentPaletteIndex = parseInt(localStorage.getItem('global-employee-palette')) || 0;
+
+        function getEmployeeColor(empName) {
+            if (!empName || empName === "") return "";
+            const index = employeeOptions.indexOf(empName);
+            if (index === -1) return "";
+            const currentPalette = employeeColorPalettes[currentPaletteIndex];
+            // מחושב לפי המיקום של העובד ברשימה
+            return currentPalette[Math.max(0, index - 1) % currentPalette.length];
+        }
+
+        // פונקציה שמחליפה בין הפלטות השונות
+        function toggleEmployeeColors() {
+            currentPaletteIndex = (currentPaletteIndex + 1) % employeeColorPalettes.length;
+            localStorage.setItem('global-employee-palette', currentPaletteIndex);
+            validateRules(); // מרענן את הצבעים בטבלה ובסטטיסטיקה
+        }
+
+        async function shareSchedule() {
+            const btn = document.querySelector('button[onclick="shareSchedule()"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '⏳ רגע...';
+            
+            // מעבר אוטומטי למצב תצוגה נקייה לפני הצילום
+            document.body.classList.add('preview-active');
+            
+            // ממתינים רגע קל כדי שהעיצוב יוסתר במסך
+            await new Promise(r => setTimeout(r, 150));
+
+            try {
+                const captureArea = document.getElementById('captureArea');
+                const canvas = await html2canvas(captureArea, {
+                    scale: 2, // איכות טובה יותר לקריאה בסמארטפון
+                    useCORS: true,
+                    backgroundColor: "#f8fafc"
+                });
+
+                canvas.toBlob(async (blob) => {
+                    // ביטול המצב הנקי מיד אחרי שהתמונה נוצרה
+                    document.body.classList.remove('preview-active');
+                    btn.innerHTML = originalText;
+
+                    if (!blob) {
+                        alert("שגיאה ביצירת התמונה");
+                        return;
+                    }
+
+                    const fileName = `schedule.png`;
+                    const file = new File([blob], fileName, { type: 'image/png' });
+
+                    // פתיחת חלון השיתוף המובנה (אייפון / אנדרואיד)
+                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                        try {
+                            await navigator.share({
+                                files: [file],
+                                title: 'סידור עבודה',
+                                text: 'מצורף סידור עבודה מעודכן'
+                            });
+                        } catch (error) {
+                            console.log('שיתוף בוטל', error);
+                        }
+                    } else {
+                        // גיבוי - אם הדפדפן לא תומך (למשל במחשב יורד קובץ תמונה)
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = fileName;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    }
+                }, 'image/png');
+            } catch (err) {
+                console.error("שגיאה:", err);
+                document.body.classList.remove('preview-active');
+                btn.innerHTML = originalText;
+                alert("אירעה שגיאה בצילום המסך.");
+            }
+        }
+
+        const headerColorThemes = [
+            { bg: '#1e293b', hover: '#334155' },
+            { bg: '#1e3a8a', hover: '#1e40af' },
+            { bg: '#4c1d95', hover: '#5b21b6' },
+            { bg: '#831843', hover: '#9d174d' },
+            { bg: '#7f1d1d', hover: '#991b1b' },
+            { bg: '#7c2d12', hover: '#9a3412' },
+            { bg: '#14532d', hover: '#166534' },
+            { bg: '#134e4a', hover: '#115e59' },
+            { bg: '#0f766e', hover: '#0d9488' },
+            { bg: '#312e81', hover: '#3730a3' } 
+        ];
+        
+        let headerColorIndex = parseInt(localStorage.getItem('global-header-color')) || 0;
+
+        function applyHeaderColor() {
+            const theme = headerColorThemes[headerColorIndex];
+            document.documentElement.style.setProperty('--day-header-bg', theme.bg);
+            document.documentElement.style.setProperty('--day-header-hover', theme.hover);
+        }
+
+        function toggleHeaderColor() {
+            headerColorIndex = (headerColorIndex + 1) % headerColorThemes.length;
+            localStorage.setItem('global-header-color', headerColorIndex);
+            applyHeaderColor();
+        }
+        
+        applyHeaderColor();
+
+        autoCopyToggle.onchange = function() {
+            if (this.checked) {
+                autoCopyContainer.classList.add('active');
+                autoCopyText.textContent = "🚀 מצב שכפול פועל! (כל בחירה תועתק עד שבת)";
+                autoCopyText.classList.remove('text-slate-700');
+                autoCopyText.classList.add('text-green-800');
+            } else {
+                autoCopyContainer.classList.remove('active');
+                autoCopyText.textContent = "מצב שכפול: כבוי (סמן לעריכה מהירה)";
+                autoCopyText.classList.remove('text-green-800');
+                autoCopyText.classList.add('text-slate-700');
+            }
+        };
+
+        function saveLists() {
+            localStorage.setItem('global-employees', JSON.stringify(employeeOptions));
+            localStorage.setItem('global-hours-hyphen', JSON.stringify(hourOptions));
+            localStorage.setItem('global-pair-count', pairCount);
+        }
+
+        function parseHours(hourStr) {
+            if (!hourStr || hourStr === "") return 0;
+            if (/^\d+$/.test(hourStr)) return parseInt(hourStr);
+            const parts = hourStr.split(/[-→←]/);
+            if (parts.length === 2) {
+                let start = parseInt(parts[0]);
+                let end = parseInt(parts[1]);
+                if (end <= start) return (24 - start) + end;
+                return end - start;
+            }
+            return 0;
+        }
+
+        function calculateStats() {
+            const stats = {};
+            let totalWeeklyHours = 0;
+            employeeOptions.forEach(emp => { if(emp !== "") stats[emp] = 0; });
+
+            const site = siteSelect.value;
+            const maxRowIdx = 2 + (pairCount * 2); 
+            
+            for (let c = 0; c < 7; c++) {
+                const key = `${site}-closedDay-${c}`;
+                const state = JSON.parse(localStorage.getItem(key) || '{"closed": false}');
+                if (state.closed) continue;
+
+                for (let r = 3; r < maxRowIdx; r += 2) { 
+                    const empSel = document.getElementById(`cell-${r}-${c}`);
+                    const hourSel = document.getElementById(`cell-${r-1}-${c}`);
+                    if (empSel && hourSel) {
+                        const emp = empSel.value;
+                        const hr = hourSel.value;
+                        if (emp !== "" && stats.hasOwnProperty(emp)) {
+                            const hours = parseHours(hr);
+                            stats[emp] += hours;
+                            totalWeeklyHours += hours;
+                        }
+                    }
+                }
+            }
+
+            let html = '<table class="stats-table">';
+            html += '<thead><tr><th>עובד</th><th>סה"כ שעות</th></tr></thead><tbody>';
+            const activeEmployees = Object.keys(stats);
+            activeEmployees.forEach((name) => {
+                // הצבע יתעדכן כאן אוטומטית לפי הפלטה שנבחרה
+                const badgeColor = getEmployeeColor(name);
+                html += `<tr><td>${name}</td><td><span class="hour-badge" style="background-color: ${badgeColor}">${stats[name]}</span></td></tr>`;
+            });
+            html += `<tr class="stats-total-row"><td><strong>סה"כ כולם</strong></td><td><strong>${totalWeeklyHours}</strong></td></tr>`;
+            html += '</tbody></table>';
+            statsTableContainer.innerHTML = html;
+        }
+
+        function validateRules() {
+            const site = siteSelect.value;
+            const maxRowIdx = 2 + (pairCount * 2);
+            for (let c = 0; c < 7; c++) {
+                const key = `${site}-closedDay-${c}`;
+                const state = JSON.parse(localStorage.getItem(key) || '{"closed": false}');
+                
+                const employeesThisDay = {};
+                for (let r = 3; r < maxRowIdx; r += 2) {
+                    const empSel = document.getElementById(`cell-${r}-${c}`);
+                    const hourSel = document.getElementById(`cell-${r-1}-${c}`);
+                    
+                    const empCellDiv = empSel ? empSel.parentElement : null;
+                    const hourCellDiv = hourSel ? hourSel.parentElement : null;
+                    
+                    if (empCellDiv) empCellDiv.classList.remove('rule-error');
+                    if (hourCellDiv) hourCellDiv.classList.remove('rule-error');
+                    
+                    if (state.closed) continue;
+                    
+                    const name = empSel ? empSel.value : "";
+                    
+                    // צביעת הרקע של התאים (גם השם וגם השעות) בהתאם לעובד ולפלטה הנוכחית
+                    const color = getEmployeeColor(name);
+                    if (empCellDiv) empCellDiv.style.backgroundColor = color || '';
+                    if (hourCellDiv) hourCellDiv.style.backgroundColor = color || '';
+
+                    if (name === "") continue;
+                    
+                    // בדיקת כפילות שעות - אם עובד מופיע פעמיים באותו יום נסמן באדום
+                    if (employeesThisDay[name]) {
+                        if (empCellDiv) empCellDiv.classList.add('rule-error');
+                        if (hourCellDiv) hourCellDiv.classList.add('rule-error');
+                        
+                        if (employeesThisDay[name].empCellDiv) employeesThisDay[name].empCellDiv.classList.add('rule-error');
+                        if (employeesThisDay[name].hourCellDiv) employeesThisDay[name].hourCellDiv.classList.add('rule-error');
+                    } else { 
+                        employeesThisDay[name] = { empCellDiv, hourCellDiv }; 
+                    }
+                }
+            }
+            calculateStats();
+        }
+
+        function refreshAllDropdowns() {
+            const maxRowIdx = 2 + (pairCount * 2);
+            for (let rowIdx = 2; rowIdx < maxRowIdx; rowIdx++) {
+                const isHourRow = (rowIdx + 1) % 2 !== 0; 
+                const currentOptions = isHourRow ? hourOptions : employeeOptions;
+                for (let colIdx = 0; colIdx < 7; colIdx++) {
+                    const select = document.getElementById(`cell-${rowIdx}-${colIdx}`);
+                    if (select) {
+                        const val = select.value;
+                        select.innerHTML = '';
+                        currentOptions.forEach(o => {
+                            const opt = document.createElement('option');
+                            opt.value = o; opt.textContent = o;
+                            select.appendChild(opt);
+                        });
+                        
+                        // המרה של חצים ישנים לקו (-)
+                        let finalVal = val;
+                        if(finalVal && (finalVal.includes('←') || finalVal.includes('→'))) {
+                            const valWithHyphen = finalVal.replace(/[←→]/g, '-');
+                            if(currentOptions.includes(valWithHyphen)) {
+                                finalVal = valWithHyphen;
+                            }
+                        }
+                        select.value = finalVal;
+                    }
+                }
+            }
+            validateRules();
+        }
+
+        function addEmployee() {
+            const input = document.getElementById('newEmployeeInput');
+            if (input.value.trim() && !employeeOptions.includes(input.value.trim())) {
+                employeeOptions.push(input.value.trim());
+                saveLists(); refreshAllDropdowns(); input.value = '';
+            }
+        }
+
+        function addHour() {
+            const input = document.getElementById('newHourInput');
+            let newHour = input.value.trim();
+            // המרה לחץ לא נדרשת יותר, אלא לקו (-) אם יש צורך
+            if(newHour.includes('←') || newHour.includes('→')) {
+                newHour = newHour.replace(/[←→]/g, '-');
+            }
+            if (newHour && !hourOptions.includes(newHour)) {
+                hourOptions.push(newHour);
+                saveLists(); refreshAllDropdowns(); input.value = '';
+            }
+        }
+
+        function copyForward(row, startCol, val) {
+            let hasCopied = false;
+            for (let c = startCol + 1; c < 7; c++) {
+                const targetId = `cell-${row}-${c}`;
+                const targetSelect = document.getElementById(targetId);
+                
+                if (targetSelect) {
+                    targetSelect.value = val;
+                    localStorage.setItem(`${siteSelect.value}-${targetId}`, val);
+                    
+                    const cellDiv = targetSelect.parentElement;
+                    cellDiv.classList.remove('flash-update');
+                    void cellDiv.offsetWidth; 
+                    cellDiv.classList.add('flash-update');
+                    
+                    hasCopied = true;
+                }
+            }
+            if (hasCopied) {
+                validateRules();
+            }
+        }
+
+        function createPairAt(pairIdx) {
+            const startRow = 2 + (pairIdx * 2);
+            for (let r = startRow; r < startRow + 2; r++) {
+                const isLast = (r + 1) % 2 === 0;
+                const isEmployeeRow = (r % 2 !== 0); // שורות של עובדים הן אי-זוגיות (3, 5, 7...)
+
+                for (let colIdx = 0; colIdx < 7; colIdx++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell cell-row-' + r;
+                    if (isLast) cell.classList.add('separator-row');
+                    
+                    cell.style.gridRow = `${r + 1}`;
+                    cell.style.gridColumn = `${colIdx + 1}`;
+                    
+                    const select = document.createElement('select');
+                    select.id = `cell-${r}-${colIdx}`;
+                    
+                    // הוספת קלאס ייעודי לשמות העובדים בלבד בטבלה
+                    if (isEmployeeRow) {
+                        select.classList.add('employee-select');
+                    } else {
+                        // צבע כחול לשעות
+                        select.classList.add('hour-select');
+                    }
+
+                    select.onchange = (e) => {
+                        const val = e.target.value;
+                        localStorage.setItem(`${siteSelect.value}-${select.id}`, val);
+                        if (autoCopyToggle.checked) {
+                            copyForward(r, colIdx, val);
+                        } else {
+                            validateRules();
+                        }
+                    };
+                    
+                    select.ondblclick = (e) => { copyForward(r, colIdx, e.target.value); };
+                    select.oncontextmenu = (e) => { e.preventDefault(); copyForward(r, colIdx, e.target.value); };
+
+                    cell.appendChild(select);
+                    grid.insertBefore(cell, messagesRow);
+                }
+            }
+        }
+
+        let dayClickTimers = {};
+        
+        function handleDayClick(colIdx) {
+            if (dayClickTimers[colIdx]) {
+                clearTimeout(dayClickTimers[colIdx]);
+                dayClickTimers[colIdx] = null;
+                clearDay(colIdx);
+            } else {
+                dayClickTimers[colIdx] = setTimeout(() => {
+                    toggleDayClosed(colIdx);
+                    dayClickTimers[colIdx] = null;
+                }, 300);
+            }
+        }
+
+        function clearDay(colIdx) {
+            const site = siteSelect.value;
+            const maxRowIdx = 2 + (pairCount * 2);
+            let hasChanges = false;
+            
+            for (let r = 2; r < maxRowIdx; r++) {
+                const id = `cell-${r}-${colIdx}`;
+                const el = document.getElementById(id);
+                if (el && el.value !== "") {
+                    el.value = "";
+                    localStorage.setItem(`${site}-${id}`, "");
+                    
+                    const cellDiv = el.parentElement;
+                    if (cellDiv) {
+                        cellDiv.classList.remove('flash-update');
+                        void cellDiv.offsetWidth; 
+                        cellDiv.classList.add('flash-update');
+                    }
+                    
+                    hasChanges = true;
+                }
+            }
+            
+            if (hasChanges) {
+                validateRules();
+            }
+        }
+
+        function toggleDayClosed(colIdx) {
+            const site = siteSelect.value;
+            const key = `${site}-closedDay-${colIdx}`;
+            let state = JSON.parse(localStorage.getItem(key) || '{"closed": false, "msg": ""}');
+            
+            state.closed = !state.closed;
+            if (state.closed && !state.msg) {
+                state.msg = "התחנה סגורה";
+            }
+            
+            localStorage.setItem(key, JSON.stringify(state));
+            renderClosedDays();
+            validateRules();
+        }
+
+        function renderClosedDays() {
+            const site = siteSelect.value;
+            const maxRowIdx = 2 + (pairCount * 2);
+            
+            document.querySelectorAll('.closed-overlay').forEach(el => el.remove());
+            
+            for (let c = 0; c < 7; c++) {
+                const key = `${site}-closedDay-${c}`;
+                const state = JSON.parse(localStorage.getItem(key) || '{"closed": false, "msg": ""}');
+                
+                for (let r = 2; r < maxRowIdx; r++) {
+                    const cellSel = document.getElementById(`cell-${r}-${c}`);
+                    if (cellSel) {
+                        cellSel.parentElement.style.visibility = state.closed ? 'hidden' : 'visible';
+                    }
+                }
+                
+                if (state.closed) {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'closed-overlay';
+                    overlay.style.gridColumn = `${c + 1}`;
+                    overlay.style.gridRow = `3 / ${maxRowIdx + 1}`;
+                    
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'closed-input-wrapper';
+                    
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'closed-msg-input';
+                    input.value = state.msg;
+                    input.placeholder = "התחנה סגורה";
+                    
+                    input.onchange = (e) => {
+                        state.msg = e.target.value;
+                        localStorage.setItem(key, JSON.stringify(state));
+                    };
+                    
+                    wrapper.appendChild(input);
+                    overlay.appendChild(wrapper);
+                    grid.insertBefore(overlay, messagesRow);
+                }
+            }
+        }
+
+        function initGrid() {
+            document.querySelectorAll('.cell:not(.header-cell)').forEach(e => e.remove());
+            for (let p = 0; p < pairCount; p++) {
+                createPairAt(p);
+            }
+        }
+
+        function updateDateLabels(base) {
+            const d0 = new Date(base);
+            if (isNaN(d0.getTime())) return;
+            date0Label.textContent = `${d0.getDate()}/${d0.getMonth()+1}`;
+            for(let i=1; i<=6; i++) {
+                const d = new Date(base); d.setDate(d.getDate()+i);
+                const target = document.getElementById(`date-${i}`);
+                if(target) target.textContent = `${d.getDate()}/${d.getMonth()+1}`;
+            }
+        }
+
+        startDateInput.onchange = function() {
+            localStorage.setItem(`startDate-${siteSelect.value}`, this.value);
+            updateDateLabels(this.value);
+        };
+
+        function loadSiteData() {
+            const s = siteSelect.value;
+            headerBar.className = 'header-bar ' + (s==='grapes'?'site-grapes':s==='mandelbaum'?'site-mandelbaum':'');
+            brandLabel.style.color = s === 'mandelbaum' ? '#000000' : '#16a34a';
+            
+            const sd = localStorage.getItem(`startDate-${s}`);
+            if(sd) { startDateInput.value=sd; updateDateLabels(sd); }
+            else { startDateInput.value=""; date0Label.textContent=""; for(let i=1;i<=6;i++) { const t = document.getElementById(`date-${i}`); if(t) t.textContent="-"; } }
+
+            messagesArea.value = localStorage.getItem(`msg-${s}`) || "";
+
+            const maxRowIdx = 2 + (pairCount * 2);
+            for(let r=2; r<maxRowIdx; r++) {
+                for(let c=0; c<7; c++) {
+                    const id = `cell-${r}-${c}`;
+                    const el = document.getElementById(id);
+                    if(el) {
+                        let savedVal = localStorage.getItem(`${s}-${id}`);
+                        if (savedVal === null) {
+                            if (r === 2) savedVal = "6-14";
+                            else if (r === 4) savedVal = "9-17";
+                            else if (r === 6) savedVal = "14-22";
+                            else savedVal = "";
+                        }
+                        // המרה של חצים ישנים לקו (-) בטעינה
+                        if(savedVal && (savedVal.includes('←') || savedVal.includes('→'))) {
+                            savedVal = savedVal.replace(/[←→]/g, '-');
+                            localStorage.setItem(`${s}-${id}`, savedVal);
+                        }
+                        el.value = savedVal;
+                    }
+                }
+            }
+            
+            autoCopyToggle.checked = false;
+            autoCopyToggle.onchange();
+
+            validateRules();
+            renderClosedDays(); 
+        }
+
+        let clickTimer = null;
+        rowToggleBtn.onclick = function() {
+            if (clickTimer) {
+                clearTimeout(clickTimer);
+                clickTimer = null;
+                handleDoubleClick();
+            } else {
+                clickTimer = setTimeout(() => {
+                    handleSingleClick();
+                    clickTimer = null;
+                }, 300);
+            }
+        };
+
+        function handleSingleClick() {
+            createPairAt(pairCount);
+            pairCount++;
+            saveLists();
+            refreshAllDropdowns();
+            loadSiteData();
+            renderClosedDays();
+        }
+
+        function handleDoubleClick() {
+            if (pairCount > 1) { // Changed minimum pairs from 3 to 1
+                pairCount--;
+                const lastRowA = 2 + (pairCount * 2);
+                const lastRowB = lastRowA + 1;
+                for (let c = 0; c < 7; c++) {
+                    localStorage.removeItem(`${siteSelect.value}-cell-${lastRowA}-${c}`);
+                    localStorage.removeItem(`${siteSelect.value}-cell-${lastRowB}-${c}`);
+                    const elA = document.getElementById(`cell-${lastRowA}-${c}`);
+                    const elB = document.getElementById(`cell-${lastRowB}-${c}`);
+                    if (elA) elA.parentElement.remove();
+                    if (elB) elB.parentElement.remove();
+                }
+                saveLists();
+                validateRules();
+                renderClosedDays();
+            }
+        }
+        
+        // פונקציה לתרגום טקסט מעברית לערבית
+        let translationTimeout;
+        async function translateToArabic(text) {
+            if (!text || text.trim() === "") {
+                translationRow.style.display = 'none';
+                return;
+            }
+            
+            translationRow.style.display = 'flex';
+            translatedText.textContent = 'מתרגם...';
+            
+            try {
+                // שימוש ב-API חינמי לתרגום. שים לב שיש לו מגבלות שימוש
+                const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=he|ar`);
+                const data = await response.json();
+                
+                if (data && data.responseData && data.responseData.translatedText) {
+                    translatedText.textContent = data.responseData.translatedText;
+                } else {
+                    translatedText.textContent = 'שגיאה בתרגום';
+                }
+            } catch (error) {
+                console.error('Translation error:', error);
+                translatedText.textContent = 'שגיאה בחיבור לשירות התרגום';
+            }
+        }
+
+        initGrid();
+        refreshAllDropdowns();
+        siteSelect.onchange = () => { localStorage.setItem('selected-site', siteSelect.value); loadSiteData(); };
+        
+        messagesArea.oninput = () => {
+            const text = messagesArea.value;
+            localStorage.setItem(`msg-${siteSelect.value}`, text);
+            
+            // השהיה קלה לפני קריאה לתרגום כדי לא להציף את ה-API בכל הקלדת אות
+            clearTimeout(translationTimeout);
+            translationTimeout = setTimeout(() => {
+                translateToArabic(text);
+            }, 800); // מחכה 800 מילישניות מסיום ההקלדה
+        };
+        
+        const lastS = localStorage.getItem('selected-site') || 'grapes';
+        siteSelect.value = lastS;
+        loadSiteData();
+        
+        // אתחול תרגום ראשוני אם יש הודעה שמורה
+        if (messagesArea.value) {
+            translateToArabic(messagesArea.value);
+        }
+    </script>
+</body>
+</html>
