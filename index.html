@@ -832,6 +832,56 @@
             }
         }
 
+        // Long press on Sunday's hours/employee cell clears that same row for the entire week.
+        function clearWeeklyRow(row) {
+            const rowType = row % 2 === 0 ? 'שעות' : 'עובדים';
+            if (!confirm(`למחוק את כל שורת ה${rowType} מיום ראשון עד שבת?`)) return;
+            const site = siteSelect.value;
+            for (let col = 0; col < 7; col++) {
+                const id = `cell-${row}-${col}`;
+                const select = document.getElementById(id);
+                if (select) select.value = '';
+                localStorage.setItem(`${site}-${id}`, '');
+            }
+            validateRules();
+        }
+
+        function enableSundayLongPress(cell, row) {
+            let timer = null;
+            let startX = 0;
+            let startY = 0;
+            let fired = false;
+            const cancel = () => {
+                if (timer !== null) clearTimeout(timer);
+                timer = null;
+            };
+            cell.addEventListener('pointerdown', (event) => {
+                if (event.pointerType === 'mouse' && event.button !== 0) return;
+                cancel();
+                fired = false;
+                startX = event.clientX;
+                startY = event.clientY;
+                timer = setTimeout(() => {
+                    timer = null;
+                    fired = true;
+                    clearWeeklyRow(row);
+                }, 700);
+            }, true);
+            cell.addEventListener('pointermove', (event) => {
+                if (Math.abs(event.clientX - startX) > 12 || Math.abs(event.clientY - startY) > 12) cancel();
+            }, true);
+            ['pointerup', 'pointercancel', 'pointerleave'].forEach(type => {
+                cell.addEventListener(type, cancel, true);
+            });
+            cell.addEventListener('click', (event) => {
+                if (fired) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    fired = false;
+                }
+            }, true);
+        }
+
         function createPairAt(pairIdx) {
             const startRow = 2 + (pairIdx * 2);
             for (let r = startRow; r < startRow + 2; r++) {
@@ -871,6 +921,7 @@
                     select.oncontextmenu = (e) => { e.preventDefault(); copyForward(r, colIdx, e.target.value); };
 
                     cell.appendChild(select);
+                    if (colIdx === 0) enableSundayLongPress(cell, r);
                     grid.insertBefore(cell, messagesRow);
                 }
             }
