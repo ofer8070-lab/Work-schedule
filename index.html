@@ -386,8 +386,10 @@
                         <option value="grapes">ענבים</option>
                         <option value="mandelbaum">מנדלבאום</option>
                     </select>
+                    <button type="button" onclick="editStationStandard()" style="background:#1e293b;color:white;border-radius:6px;padding:4px 9px;font-weight:bold;margin-top:5px">תקן שבועי</button>
                 </div>
             </div>
+            <div id="stationStandardStatus" role="status" aria-live="polite" style="text-align:center;padding:7px;font-weight:bold;background:#e2e8f0;color:#334155"></div>
 
             <div class="grid-wrapper" id="mainGrid">
                 <!-- Headers Days -->
@@ -672,6 +674,46 @@
             return 0;
         }
 
+        function editStationStandard() {
+            const stationName = siteSelect.options[siteSelect.selectedIndex].text;
+            const key = 'weekly-standard-' + siteSelect.value;
+            const previous = localStorage.getItem(key);
+            const input = prompt('הזן תקן שעות שבועי לכל תחנת ' + stationName + ' (השאר ריק לביטול התקן):', previous === null ? '' : previous);
+            if (input === null) return;
+            const value = input.trim();
+            if (value === '') {
+                localStorage.removeItem(key);
+            } else {
+                const num = Number(value.replace(',', '.'));
+                if (!Number.isFinite(num) || num < 0) {
+                    alert('יש להזין מספר שעות תקין, אפס או יותר.');
+                    return;
+                }
+                localStorage.setItem(key, String(num));
+            }
+            calculateStats();
+        }
+
+        function updateStationStandardStatus(total) {
+            const el = document.getElementById('stationStandardStatus');
+            if (!el) return;
+            const saved = localStorage.getItem('weekly-standard-' + siteSelect.value);
+            const stationName = siteSelect.options[siteSelect.selectedIndex].text;
+            if (saved === null) {
+                el.textContent = stationName + ' | לא הוגדר תקן שבועי | משובץ: ' + total + ' שעות';
+                el.style.background = '#e2e8f0';
+                el.style.color = '#334155';
+                return;
+            }
+            const standard = Number(saved);
+            const difference = Math.round((standard - total) * 100) / 100;
+            const fmt = n => String(Math.round(n * 100) / 100);
+            el.textContent = stationName + ' | תקן: ' + fmt(standard) + ' | משובץ: ' + fmt(total) + ' | ' +
+                (difference < 0 ? 'חריגה: ' + fmt(-difference) : 'יתרה: ' + fmt(difference)) + ' שעות';
+            el.style.background = difference < 0 ? '#fee2e2' : '#dcfce7';
+            el.style.color = difference < 0 ? '#991b1b' : '#166534';
+        }
+
         function calculateStats() {
             const stats = {};
             let totalWeeklyHours = 0;
@@ -711,6 +753,7 @@
             html += `<tr class="stats-total-row"><td><strong>סה"כ כולם</strong></td><td><strong>${totalWeeklyHours}</strong></td></tr>`;
             html += '</tbody></table>';
             statsTableContainer.innerHTML = html;
+            updateStationStandardStatus(totalWeeklyHours);
         }
 
         function validateRules() {
