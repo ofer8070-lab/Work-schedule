@@ -371,8 +371,8 @@
             .cell { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
 
-        @keyframes stationOverLimitBlink { 0%, 100% { background:#fee2e2; color:#991b1b; } 50% { background:#dc2626; color:#ffffff; } }
-        .station-over-limit { animation: stationOverLimitBlink 1s ease-in-out infinite; }
+        @keyframes stationOverLimitBlink { 0%, 100% { background-color:#fee2e2; color:#991b1b; opacity:1; } 50% { background-color:#dc2626; color:#ffffff; opacity:.35; } }
+        .station-over-limit { animation: stationOverLimitBlink .8s steps(2, start) infinite !important; border:3px solid #dc2626 !important; }
     </style>
 </head>
 <body>
@@ -713,8 +713,15 @@
             const fmt = n => String(Math.round(n * 100) / 100);
             el.textContent = stationName + ' | תקן: ' + fmt(standard) + ' | משובץ: ' + fmt(total) + ' | ' +
                 (difference < 0 ? 'חריגה: ' + fmt(-difference) : 'יתרה: ' + fmt(difference)) + ' שעות';
-            el.style.background = difference < 0 ? '#fee2e2' : '#dcfce7';
-            el.style.color = difference < 0 ? '#991b1b' : '#166534';
+            el.style.removeProperty('background');
+            el.style.removeProperty('color');
+            if (difference >= 0) {
+                el.style.backgroundColor = '#dcfce7';
+                el.style.color = '#166534';
+                el.style.border = 'none';
+            } else {
+                el.style.border = '3px solid #dc2626';
+            }
             if (difference < 0) el.classList.add('station-over-limit');
         }
 
