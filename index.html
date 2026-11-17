@@ -371,6 +371,8 @@
             .cell { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
 
+        @keyframes stationOverLimitBlink { 0%, 100% { background:#fee2e2; color:#991b1b; } 50% { background:#dc2626; color:#ffffff; } }
+        .station-over-limit { animation: stationOverLimitBlink 1s ease-in-out infinite; }
     </style>
 </head>
 <body>
@@ -699,6 +701,7 @@
             if (!el) return;
             const saved = localStorage.getItem('weekly-standard-' + siteSelect.value);
             const stationName = siteSelect.options[siteSelect.selectedIndex].text;
+            el.classList.remove('station-over-limit');
             if (saved === null) {
                 el.textContent = stationName + ' | לא הוגדר תקן שבועי | משובץ: ' + total + ' שעות';
                 el.style.background = '#e2e8f0';
@@ -712,6 +715,7 @@
                 (difference < 0 ? 'חריגה: ' + fmt(-difference) : 'יתרה: ' + fmt(difference)) + ' שעות';
             el.style.background = difference < 0 ? '#fee2e2' : '#dcfce7';
             el.style.color = difference < 0 ? '#991b1b' : '#166534';
+            if (difference < 0) el.classList.add('station-over-limit');
         }
 
         function calculateStats() {
