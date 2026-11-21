@@ -428,7 +428,25 @@
         </div>
 
         <!-- אזור הניהול -->
-        <div class="management-area" id="managementArea">
+        <div class="management-area" id="managementArea"><section id="smartScheduler" style="background:#fff;border:2px solid #16a34a;border-radius:14px;padding:14px;margin-bottom:12px;direction:rtl;font-family:Arial,sans-serif">
+<h2 style="font-weight:900;font-size:21px;color:#166534;margin:0 0 10px">🤖 סדרן עבודה חכם - פיילוט</h2>
+<p style="font-size:13px;color:#475569;margin-bottom:10px">בניית טיוטת סידור אוטומטית לפי בקשות ומגבלות. פרסום רק באישור מנהל. הבקשות נשמרות כרגע במכשיר זה בלבד.</p>
+<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+<label>עובד <select id="smartEmployee" style="border:1px solid #94a3b8;padding:6px;border-radius:6px"></select></label>
+<label>יום <select id="smartDay" style="border:1px solid #94a3b8;padding:6px;border-radius:6px"><option value="0">ראשון</option><option value="1">שני</option><option value="2">שלישי</option><option value="3">רביעי</option><option value="4">חמישי</option><option value="5">שישי</option><option value="6">שבת</option></select></label>
+<button type="button" onclick="smartAddDayOff()" style="background:#fef3c7;padding:8px;border-radius:7px;font-weight:bold">+ בקשת חופש</button>
+</div>
+<div id="smartRequests" style="font-size:13px;margin-bottom:10px"></div>
+<div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin:8px 0">
+<label>מקסימום שעות שבועיות <input id="smartMaxHours" type="number" min="1" max="100" value="48" style="border:1px solid #94a3b8;border-radius:6px;width:62px;padding:6px"></label>
+<label>מנוחה בין משמרות <input id="smartRestHours" type="number" min="0" max="24" value="11" style="border:1px solid #94a3b8;border-radius:6px;width:58px;padding:6px"></label>
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<button type="button" onclick="smartBuild()" style="background:#16a34a;color:white;padding:11px 15px;border-radius:8px;font-weight:900">✨ בנה סידור אוטומטי</button>
+<button type="button" id="smartApprove" onclick="smartApproveDraft()" style="display:none;background:#1d4ed8;color:white;padding:11px 15px;border-radius:8px;font-weight:bold">✓ אשר ושמור סידור</button>
+<button type="button" onclick="smartCancelDraft()" style="background:#e2e8f0;padding:11px;border-radius:8px;font-weight:bold">בטל טיוטה</button>
+</div><div id="smartResult" role="status" aria-live="polite" style="margin-top:10px;font-size:14px;overflow-x:auto"></div>
+</section>
             <div class="management-row">
                 <div id="autoCopyContainer" class="manage-box">
                     <label class="flex items-center gap-3 cursor-pointer w-full justify-center">
@@ -1240,5 +1258,101 @@
             translateToArabic(messagesArea.value);
         }
     </script>
+<script>
+/* Deterministic pilot scheduler - no external AI or cloud is claimed. */
+(function(){
+const days=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+let draft=null;
+const $=id=>document.getElementById(id);
+const site=()=>document.getElementById('siteSelect').value;
+const storageKey=()=> 'smart-requests-'+site();
+function requests(){try{return JSON.parse(localStorage.getItem(storageKey())||'[]')}catch(e){return []}}
+function refresh(){
+ const dropdown=$('smartEmployee'), old=dropdown.value;
+ dropdown.replaceChildren();
+ employeeOptions.filter(Boolean).forEach(name=>{const o=document.createElement('option');o.value=name;o.textContent=name;dropdown.append(o)});
+ if([...dropdown.options].some(x=>x.value===old))dropdown.value=old;
+ const target=$('smartRequests');target.replaceChildren();
+ const req=requests();
+ if(!req.length){target.textContent='אין בקשות חופש שהוזנו לתחנה זו.';return}
+ req.forEach((r,i)=>{
+  const line=document.createElement('div');line.style.cssText='display:flex;align-items:center;gap:6px;padding:4px;border-bottom:1px solid #eee';
+  const span=document.createElement('span');span.textContent=r.name+' - '+days[r.day];line.append(span);
+  const del=document.createElement('button');del.textContent='מחק';del.style.cssText='color:#b91c1c;border:1px solid #fecaca;border-radius:5px;padding:3px 7px';
+  del.onclick=()=>{const q=requests();q.splice(i,1);localStorage.setItem(storageKey(),JSON.stringify(q));draft=null;$('smartApprove').style.display='none';refresh()};
+  line.append(del);target.append(line);
+ });
+}
+window.smartAddDayOff=function(){
+ const name=$('smartEmployee').value,day=Number($('smartDay').value);if(!name)return;
+ const req=requests();if(!req.some(x=>x.name===name&&x.day===day))req.push({name,day});
+ localStorage.setItem(storageKey(),JSON.stringify(req));draft=null;$('smartApprove').style.display='none';refresh()
+};
+function duration(s){const m=String(s).match(/^(\d{1,2})-(\d{1,2})$/);if(!m)return null;const a=Number(m[1]),b=Number(m[2]);if(a>23||b>24||a===b)return null;return (b-a+24)%24||24}
+function interval(day,h){const p=String(h).match(/^(\d+)-(\d+)$/);if(!p)return null;let start=day*24+Number(p[1]),len=duration(h);return len?{start,end:start+len,len}:null}
+function valid(candidate,intervals,max,rest){
+ if(intervals.reduce((n,x)=>n+x.len,0)+candidate.len>max)return false;
+ for(const x of intervals){if(candidate.start<x.end+rest && x.start<candidate.end+rest)return false}
+ return true;
+}
+window.smartBuild=function(){
+ const employees=employeeOptions.filter(Boolean);
+ const max=Number($('smartMaxHours').value),rest=Number($('smartRestHours').value);
+ const result=$('smartResult');draft=null;$('smartApprove').style.display='none';
+ if(!employees.length||!Number.isFinite(max)||max<1||!Number.isFinite(rest)||rest<0){result.textContent='יש להגדיר עובדים ומגבלות תקינות.';return}
+ const req=requests(),blocked=new Set(req.map(x=>x.name+'|'+x.day));
+ const slots=[],warnings=[],assignments={};const per=new Map(employees.map(e=>[e,[]]));
+ for(let day=0;day<7;day++){
+  const closed=JSON.parse(localStorage.getItem(site()+'-closedDay-'+day)||'{"closed":false}').closed;
+  if(closed)continue;
+  for(let row=2;row<2+pairCount*2;row+=2){
+   const hourEl=$('cell-'+row+'-'+day),empEl=$('cell-'+(row+1)+'-'+day);
+   if(!hourEl||!empEl||!hourEl.value)continue;
+   const span=interval(day,hourEl.value);
+   if(!span){warnings.push('שעה לא תקינה: '+hourEl.value+' ביום '+days[day]);continue}
+   slots.push({day,row,hour:hourEl.value,span,existing:empEl.value});
+  }
+ }
+ // Preserve existing assignments where they obey constraints, otherwise flag and reschedule.
+ const ordered=slots.slice().sort((a,b)=>a.span.start-b.span.start);
+ for(const slot of ordered){
+  const old=slot.existing;
+  if(old&&per.has(old)&&!blocked.has(old+'|'+slot.day)&&valid(slot.span,per.get(old),max,rest)){
+   assignments[slot.row+'-'+slot.day]=old;per.get(old).push(slot.span);
+  }else if(old){warnings.push('שיבוץ קיים הוחלף לבדיקה: '+old+' ביום '+days[slot.day])}
+ }
+ for(const slot of ordered){
+  const key=slot.row+'-'+slot.day;if(assignments[key])continue;
+  const options=employees.filter(e=>!blocked.has(e+'|'+slot.day)&&valid(slot.span,per.get(e),max,rest));
+  options.sort((a,b)=>per.get(a).reduce((v,x)=>v+x.len,0)-per.get(b).reduce((v,x)=>v+x.len,0)||a.localeCompare(b,'he'));
+  if(!options.length){warnings.push('אין עובד מתאים: '+days[slot.day]+' '+slot.hour);continue}
+  assignments[key]=options[0];per.get(options[0]).push(slot.span);
+ }
+ draft={site:site(),assignments,slots:ordered,complete:ordered.every(x=>assignments[x.row+'-'+x.day]),snapshot:ordered.map(x=>[x.row,x.day,x.hour,$('cell-'+(x.row+1)+'-'+x.day).value])};
+ result.replaceChildren();
+ const title=document.createElement('div');title.style.fontWeight='bold';title.textContent='טיוטה: '+Object.keys(assignments).length+' מתוך '+ordered.length+' משמרות מאוישות';result.append(title);
+ const table=document.createElement('table');table.style.cssText='border-collapse:collapse;width:100%;font-size:12px;margin:8px 0';
+ const head=document.createElement('tr');['שעות',...days].forEach(x=>{const th=document.createElement('th');th.textContent=x;th.style.cssText='border:1px solid #cbd5e1;padding:5px;background:#e2e8f0';head.append(th)});table.append(head);
+ for(let row=2;row<2+pairCount*2;row+=2){const tr=document.createElement('tr');let td=document.createElement('td');td.textContent='משמרת '+((row-2)/2+1);td.style.border='1px solid #cbd5e1';tr.append(td);for(let day=0;day<7;day++){td=document.createElement('td');const el=$('cell-'+row+'-'+day);const sl=ordered.find(x=>x.row===row&&x.day===day);td.textContent=sl?(sl.hour+' '+(assignments[row+'-'+day]||'⚠️ חסר')):(el&&el.value?'סגור':'-');td.style.cssText='border:1px solid #cbd5e1;padding:5px;min-width:65px;text-align:center';tr.append(td)}table.append(tr)}result.append(table);
+ if(warnings.length){const details=document.createElement('details');details.open=true;const sum=document.createElement('summary');sum.textContent='⚠️ '+warnings.length+' הערות ובדיקות';details.append(sum);const ul=document.createElement('ul');warnings.forEach(w=>{const li=document.createElement('li');li.textContent=w;ul.append(li)});details.append(ul);result.append(details)}
+ const note=document.createElement('div');note.textContent='טיוטה בלבד. ללא סנכרון בקשות בין מכשירים, ללא בדיקת חוקי עבודה מלאים וללא מודל AI חיצוני.';note.style.color='#92400e';result.append(note);
+ if(draft.complete)$('smartApprove').style.display='inline-block';else{const x=document.createElement('div');x.textContent='לא ניתן לאשר טיוטה עם משמרות חסרות. ניתן להשלים ידנית.';result.append(x)}
+};
+window.smartApproveDraft=function(){
+ if(!draft||!draft.complete||draft.site!==site()){alert('יש ליצור טיוטה תקינה לתחנה הנוכחית');return}
+ const unchanged=draft.snapshot.every(([r,c,h,e])=>$('cell-'+r+'-'+c)?.value===h&&$('cell-'+(r+1)+'-'+c)?.value===e);
+ if(!unchanged){alert('הסידור השתנה מאז יצירת הטיוטה. יש לבנות מחדש.');return}
+ if(!confirm('לאשר ולשמור את הטיוטה במכשיר זה? הפעולה תחליף שיבוצים קיימים. היא אינה מפרסמת לענן.'))return;
+ for(const slot of draft.slots){const id='cell-'+(slot.row+1)+'-'+slot.day,el=$(id),name=draft.assignments[slot.row+'-'+slot.day];if(!el||![...el.options].some(x=>x.value===name)){alert('רשימת העובדים השתנתה. יש לבנות מחדש.');return}}
+ for(const slot of draft.slots){const id='cell-'+(slot.row+1)+'-'+slot.day,el=$(id);el.value=draft.assignments[slot.row+'-'+slot.day];localStorage.setItem(site()+'-'+id,el.value)}
+ if(typeof validateRules==='function')validateRules();
+ draft=null;$('smartApprove').style.display='none';$('smartResult').textContent='✅ הסידור אושר ונשמר במכשיר זה. לפרסום לעובדים השתמש בכפתור השיתוף הקיים.';
+};
+window.smartCancelDraft=function(){draft=null;$('smartApprove').style.display='none';$('smartResult').textContent='הטיוטה בוטלה. הסידור הקיים לא השתנה.'};
+$('siteSelect').addEventListener('change',()=>{draft=null;$('smartApprove').style.display='none';$('smartResult').textContent='';refresh()});
+$('smartEmployee').addEventListener('focus',refresh);
+refresh();
+})();
+</script>
 </body>
 </html>
