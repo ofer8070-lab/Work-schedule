@@ -387,12 +387,49 @@ html,body{background:#f0f4f8;color:#172c43;font-family:Arial,sans-serif}.app-con
 #mainGrid .cell{margin-left:1px;margin-right:1px}
 #mainGrid .cell[class*="cell-row-"]{min-height:25px}
 #mainGrid .day-frame{border-bottom-width:3px}
+</style><style id="dark-mode-v4">
+#themeToggle{border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#172c43;padding:7px 12px;font-weight:bold;font-size:13px;cursor:pointer;min-height:36px}
+.pilot-theme-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 0 8px}
+html.pilot-dark{color-scheme:dark;background:#101722}
+html.pilot-dark body{background:#101722;color:#e5edf7}
+.pilot-dark #captureArea{background:transparent}
+.pilot-dark .header-bar,.pilot-dark .pilot-cards>div,.pilot-dark .grid-wrapper,.pilot-dark .pilot-tools,.pilot-dark .management-row,.pilot-dark .stats-row,.pilot-dark #smartScheduler,.pilot-dark .manage-box{background:#1c293b!important;color:#e5edf7!important}
+.pilot-dark .header-bar #brandLabel,.pilot-dark .header-bar .text-slate-800,.pilot-dark #smartScheduler h2,.pilot-dark .text-slate-700,.pilot-dark .text-slate-600,.pilot-dark .text-slate-800{color:#e5edf7!important}
+.pilot-dark .pilot-cards>div{color:#b7c7dc}.pilot-dark .pilot-cards b{color:#a9d5ff}
+.pilot-dark #mainGrid .day-frame{background:#182436;border-color:#7286a0}.pilot-dark #mainGrid .day-frame.alt{background:#233349}
+.pilot-dark #mainGrid .day-header{background:#344b66!important;color:#fff!important}
+.pilot-dark #mainGrid .header-cell:not(.day-header){background:#2b3c54!important;color:#e5edf7!important}
+.pilot-dark #mainGrid .cell[class*="cell-row-"]{background:#213f55!important;color:#e4f5ff}
+.pilot-dark #mainGrid .cell:nth-of-type(n){border-color:transparent}
+.pilot-dark #mainGrid .cell[data-shift="1"]{background:#503e20!important;color:#ffebbd}
+.pilot-dark #mainGrid .cell[data-shift="2"]{background:#393b60!important;color:#eeebff}
+.pilot-dark #mainGrid .cell.rule-error{background:#682a34!important;color:#fff}
+.pilot-dark .cell .hour-select{color:inherit!important}
+.pilot-dark .messages-row,.pilot-dark .translation-row,.pilot-dark .stats-table th,.pilot-dark .stats-table td{background:#25364b;color:#e5edf7}
+.pilot-dark .stats-total-row td{background:#174b80;color:white}
+.pilot-dark .hour-badge{color:#172c43}
+.pilot-dark .messages-input{color:#fca5a5}.pilot-dark .translation-text{color:#93c5fd}
+.pilot-dark select,.pilot-dark input,.pilot-dark textarea,.pilot-dark #themeToggle{color:#e5edf7;background:#24354a;border-color:#53677f}
+.pilot-dark .cell select{background:transparent}
+.pilot-dark .cell select option{background:#24354a;color:#e5edf7}
+.pilot-dark .pilot-note{color:#c1cde0}
+.pilot-dark #smartScheduler p{color:#c1cde0!important}
+.pilot-dark #smartResult table th{background:#344b66!important;color:white}
+.pilot-dark #autoCopyContainer{background:#25364b;color:#e5edf7}
+.pilot-dark #autoCopyContainer.active{background:#164e3a}
+.pilot-dark .row-toggle-btn{color:#172c43}
+.pilot-dark #stationStandardStatus{color:#e5edf7!important;background:#263b4e!important}
+.pilot-dark #stationStandardStatus.station-over-limit{background:#991b1b!important;color:#fff!important}
+.pilot-dark .closed-overlay{background:repeating-linear-gradient(45deg,#442530,#442530 10px,#542a36 10px,#542a36 20px)}
+.pilot-dark .closed-msg-input{color:#fecaca}
+@media print{.pilot-theme-row{display:none!important}}
+.preview-active .pilot-theme-row{display:none!important}
 </style></head>
 <body>
 
     <div class="app-container" id="appContainer">
         <!-- אזור הצילום המדויק -->
-        <div id="captureArea"><div class="pilot-note">גרסת ניסיון 3 • עותק נפרד של הנתונים במכשיר</div>
+        <div id="captureArea"><div class="pilot-theme-row"><div class="pilot-note">גרסת ניסיון 4 • עותק נפרד</div><button type="button" id="themeToggle" aria-pressed="false">🌙 מצב כהה</button></div>
             <div class="header-bar" id="headerBar">
                 <div class="text-right font-bold text-slate-800 text-lg">סידור עבודה</div>
                 <div class="text-center font-black text-2xl" id="brandLabel">דור אלון</div>
@@ -975,7 +1012,7 @@ html,body{background:#f0f4f8;color:#172c43;font-family:Arial,sans-serif}.app-con
 
                 for (let colIdx = 0; colIdx < 7; colIdx++) {
                     const cell = document.createElement('div');
-                    cell.className = 'cell cell-row-' + r;
+                    cell.className = 'cell cell-row-' + r; cell.dataset.shift=String(Math.floor((r-2)/2)%3);
                     if (isLast) cell.classList.add('separator-row');
                     
                     cell.style.gridRow = `${2 + colIdx*2 + (r%2)}`;
@@ -1367,5 +1404,5 @@ refresh();
 </script>
 <script>
 (function(){const headers=[...grid.querySelectorAll('.header-cell')];headers.forEach((el,i)=>{el.style.gridColumn='1';el.style.gridRow=String(i<7?2+i*2:3+(i-7)*2);});function layout(){grid.style.setProperty('--pairs',pairCount);grid.querySelectorAll('.shift-head,.day-frame').forEach(e=>e.remove());for(let d=0;d<7;d++){const f=document.createElement('div');f.className='day-frame'+(d%2?' alt':'');f.style.gridColumn='1 / -1';f.style.gridRow=(2+d*2)+' / '+(4+d*2);f.setAttribute('aria-hidden','true');grid.prepend(f);}for(let i=0;i<=pairCount;i++){const h=document.createElement('div');h.className='shift-head';h.style.gridRow='1';h.style.gridColumn=String(i+1);h.style.background=['#65758a','#397b9e','#ad7525','#34466d'][i%4];h.textContent=['יום','בוקר','צהריים','לילה'][i]||'משמרת '+i;grid.insertBefore(h,grid.firstChild);}messagesRow.style.gridRow='16';translationRow.style.gridRow='17';}layout();const oldAdd=handleSingleClick,oldRemove=handleDoubleClick;handleSingleClick=function(){oldAdd();layout()};handleDoubleClick=function(){oldRemove();layout()};const management=document.querySelector('.management-row');if(management){const details=document.createElement('details');details.className='pilot-tools';const summary=document.createElement('summary');summary.textContent='הגדרות וכלי ניהול';management.before(details);details.append(summary,management);}const smart=document.getElementById('smartScheduler');const stats=document.getElementById('statsRow');if(smart&&stats){const d=document.createElement('details');d.className='pilot-tools';const t=document.createElement('summary');t.textContent='✦ הכנת סידור אוטומטי';smart.before(d);d.append(t,smart);}})();
-</script></body>
+</script><script>(function(){const b=document.getElementById('themeToggle');if(!b)return;function apply(dark){document.documentElement.classList.toggle('pilot-dark',dark);b.textContent=dark?'☀️ מצב בהיר':'🌙 מצב כהה';b.setAttribute('aria-pressed',String(dark));}apply(pilotStorage.getItem('theme')==='dark');b.addEventListener('click',()=>{const dark=!document.documentElement.classList.contains('pilot-dark');pilotStorage.setItem('theme',dark?'dark':'light');apply(dark);});})();</script></body>
 </html>
