@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>סידור עבודה - דור אלון</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -445,12 +445,34 @@ html.pilot-dark body{background:#101722;color:#e5edf7}
 #mainGrid .day-frame{border-bottom:0!important;border-radius:7px 7px 0 0}
 #mainGrid .day-divider{grid-column:1/-1;align-self:end;height:3px;background:var(--day-accent);z-index:5;pointer-events:none;margin:0 -1px;position:relative;border-radius:0}
 #mainGrid .header-cell[data-day]:not(.day-header),#mainGrid .cell[data-day]{margin-bottom:4px}
+</style><style id="schedule-fit-v7">
+#scheduleFitToggle{border:1px solid #cbd5e1;border-radius:10px;background:#174b80;color:#fff;padding:7px 9px;font-weight:bold;font-size:13px;white-space:nowrap;min-height:36px}
+#scheduleFitStage{width:100%}
+html.schedule-fit,html.schedule-fit body{overflow:hidden;height:100%;overscroll-behavior:none}
+.schedule-fit #appContainer{position:fixed;inset:0;box-sizing:border-box;padding:max(3px,env(safe-area-inset-top)) max(3px,env(safe-area-inset-right)) max(3px,env(safe-area-inset-bottom)) max(3px,env(safe-area-inset-left));min-height:0;height:100dvh;width:100%;overflow:hidden;display:flex}
+.schedule-fit #captureArea{display:flex;flex-direction:column;flex:1;min-height:0;max-width:none;width:100%;padding:0;overflow:hidden}
+.schedule-fit #managementArea,.schedule-fit .header-bar,.schedule-fit .pilot-cards,.schedule-fit #stationStandardStatus,.schedule-fit .pilot-note,.schedule-fit #themeToggle,.schedule-fit #messagesRow,.schedule-fit #translationRow{display:none!important}
+.schedule-fit .pilot-theme-row{flex:none;margin:0 0 3px;justify-content:space-between;min-height:26px}
+.schedule-fit #scheduleFitToggle{min-height:26px;padding:3px 9px;font-size:12px}
+.schedule-fit #scheduleFitStage{flex:1;min-height:0;width:100%;overflow:hidden;position:relative}
+.schedule-fit #mainGrid{width:100%;height:100%;box-sizing:border-box;grid-template-rows:minmax(18px,.8fr) repeat(14,minmax(0,1fr));grid-auto-rows:0;row-gap:1px;padding:3px;align-content:stretch;overflow:hidden}
+.schedule-fit #mainGrid .cell,.schedule-fit #mainGrid .header-cell{min-height:0;padding:0;margin-top:1px;margin-bottom:1px;overflow:hidden}
+.schedule-fit #mainGrid .header-cell[data-day]:not(.day-header){margin-bottom:3px}
+.schedule-fit #mainGrid .shift-head{padding:2px 0;min-height:0;display:flex;align-items:center;justify-content:center}
+.schedule-fit #mainGrid .day-divider{height:3px}
+.schedule-fit #mainGrid select{height:100%;min-height:0;font-size:clamp(10px,3.3vw,17px)!important}
+.schedule-fit #mainGrid .hour-select{font-size:clamp(10px,2.9vw,14px)!important}
+.schedule-fit #mainGrid .day-header{font-size:clamp(10px,3.2vw,16px)}
+.schedule-fit #mainGrid .date-label{font-size:clamp(9px,2.8vw,13px)}
+.schedule-fit #fitStationName{display:block;font-weight:bold;font-size:12px;white-space:nowrap}
+#fitStationName{display:none}
+.preview-active #scheduleFitToggle{display:none!important}
 </style></head>
 <body>
 
     <div class="app-container" id="appContainer">
         <!-- אזור הצילום המדויק -->
-        <div id="captureArea"><div class="pilot-theme-row"><div class="pilot-note">גרסת ניסיון 6 • עותק נפרד</div><button type="button" id="themeToggle" aria-pressed="false">🌙 מצב כהה</button></div>
+        <div id="captureArea"><div class="pilot-theme-row"><div class="pilot-note">גרסת ניסיון 7 • עותק נפרד</div><button type="button" id="scheduleFitToggle" aria-pressed="false" title="תצוגת סידור במסך מלא">⛶ מסך מלא</button><button type="button" id="themeToggle" aria-pressed="false">🌙 מצב כהה</button></div>
             <div class="header-bar" id="headerBar">
                 <div class="text-right font-bold text-slate-800 text-lg">סידור עבודה</div>
                 <div class="text-center font-black text-2xl" id="brandLabel">דור אלון</div>
@@ -464,7 +486,7 @@ html.pilot-dark body{background:#101722;color:#e5edf7}
             </div>
             <div class="pilot-cards"><div>תקן שעות<b id="pilotStandard">—</b></div><div>שיבוץ בפועל<b id="pilotActual">0</b></div><div>יתרה / חריגה<b id="pilotDiff">—</b></div></div><div id="stationStandardStatus" role="status" aria-live="polite" style="text-align:center;padding:7px;font-weight:bold;background:#e2e8f0;color:#334155"></div>
 
-            <div class="grid-wrapper" id="mainGrid">
+            <div id="scheduleFitStage"><div class="grid-wrapper" id="mainGrid">
                 <!-- Headers Days -->
                 <div class="header-cell day-header" onclick="handleDayClick(0)" title="לחיצה כפולה למחיקת כל הנתונים ביום זה"><span>ראשון</span></div>
                 <div class="header-cell day-header" onclick="handleDayClick(1)" title="לחיצה כפולה למחיקת כל הנתונים ביום זה"><span>שני</span></div>
@@ -495,7 +517,7 @@ html.pilot-dark body{background:#101722;color:#e5edf7}
                 <div class="translation-row" id="translationRow" style="display: none;">
                     <div id="translatedText" class="translation-text">מתרגם...</div>
                 </div>
-            </div>
+            </div></div>
         </div>
 
         <!-- אזור הניהול -->
@@ -1425,5 +1447,5 @@ refresh();
 </script>
 <script>
 (function(){const dayColors=[['#1d4ed8','#e6efff','#1d3457'],['#047857','#dcf5e8','#173e36'],['#9a3412','#ffebd9','#4c3026'],['#6d28d9','#eee5ff','#382b55'],['#0e7490','#d9f5fa','#193e4b'],['#a21caf','#fae4f7','#4a2948'],['#475569','#e7ebf1','#303b4b']];function paintDay(el,d){el.dataset.day=String(d);const p=dayColors[d];el.style.setProperty('--day-accent',p[0]);el.style.setProperty('--day-bg',p[1]);el.style.setProperty('--day-dark',p[2]);}const headers=[...grid.querySelectorAll('.header-cell')];headers.forEach((el,i)=>{paintDay(el,i%7);el.style.gridColumn='1';el.style.gridRow=String(i<7?2+i*2:3+(i-7)*2);});function layout(){grid.style.setProperty('--pairs',pairCount);grid.querySelectorAll('.cell select').forEach(sel=>{const m=sel.id.match(/^cell-\d+-(\d+)$/);if(m)paintDay(sel.parentElement,Number(m[1]));});grid.querySelectorAll('.shift-head,.day-frame,.day-divider').forEach(e=>e.remove());for(let d=0;d<7;d++){const f=document.createElement('div');f.className='day-frame'+(d%2?' alt':'');f.style.gridColumn='1 / -1';f.style.gridRow=(2+d*2)+' / '+(4+d*2);paintDay(f,d);f.setAttribute('aria-hidden','true');grid.prepend(f);const line=document.createElement('div');line.className='day-divider';line.style.gridRow=String(3+d*2);paintDay(line,d);line.setAttribute('aria-hidden','true');grid.append(line);}for(let i=0;i<=pairCount;i++){const h=document.createElement('div');h.className='shift-head';h.style.gridRow='1';h.style.gridColumn=String(i+1);h.style.background=['#65758a','#397b9e','#ad7525','#34466d'][i%4];h.textContent=['יום','בוקר','צהריים','לילה'][i]||'משמרת '+i;grid.insertBefore(h,grid.firstChild);}messagesRow.style.gridRow='16';translationRow.style.gridRow='17';}layout();const oldAdd=handleSingleClick,oldRemove=handleDoubleClick;handleSingleClick=function(){oldAdd();layout()};handleDoubleClick=function(){oldRemove();layout()};const management=document.querySelector('.management-row');if(management){const details=document.createElement('details');details.className='pilot-tools';const summary=document.createElement('summary');summary.textContent='הגדרות וכלי ניהול';management.before(details);details.append(summary,management);}const smart=document.getElementById('smartScheduler');const stats=document.getElementById('statsRow');if(smart&&stats){const d=document.createElement('details');d.className='pilot-tools';const t=document.createElement('summary');t.textContent='✦ הכנת סידור אוטומטי';smart.before(d);d.append(t,smart);}})();
-</script><script>(function(){const b=document.getElementById('themeToggle');if(!b)return;function apply(dark){document.documentElement.classList.toggle('pilot-dark',dark);b.textContent=dark?'☀️ מצב בהיר':'🌙 מצב כהה';b.setAttribute('aria-pressed',String(dark));}apply(pilotStorage.getItem('theme')==='dark');b.addEventListener('click',()=>{const dark=!document.documentElement.classList.contains('pilot-dark');pilotStorage.setItem('theme',dark?'dark':'light');apply(dark);});})();</script></body>
+</script><script>(function(){const b=document.getElementById('themeToggle');if(!b)return;function apply(dark){document.documentElement.classList.toggle('pilot-dark',dark);b.textContent=dark?'☀️ מצב בהיר':'🌙 מצב כהה';b.setAttribute('aria-pressed',String(dark));}apply(pilotStorage.getItem('theme')==='dark');b.addEventListener('click',()=>{const dark=!document.documentElement.classList.contains('pilot-dark');pilotStorage.setItem('theme',dark?'dark':'light');apply(dark);});})();</script><script>(function(){const b=document.getElementById('scheduleFitToggle'),bar=b.parentElement;const label=document.createElement('span');label.id='fitStationName';bar.prepend(label);function fit(on){document.documentElement.classList.toggle('schedule-fit',on);b.textContent=on?'✕ חזרה':'⛶ מסך מלא';b.setAttribute('aria-pressed',String(on));label.textContent='סידור עבודה • '+siteSelect.options[siteSelect.selectedIndex].text;window.scrollTo(0,0);}b.addEventListener('click',()=>fit(!document.documentElement.classList.contains('schedule-fit')));document.addEventListener('keydown',e=>{if(e.key==='Escape')fit(false)});})();</script></body>
 </html>
