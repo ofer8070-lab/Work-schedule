@@ -467,12 +467,29 @@ html.schedule-fit,html.schedule-fit body{overflow:hidden;height:100%;overscroll-
 .schedule-fit #fitStationName{display:block;font-weight:bold;font-size:12px;white-space:nowrap}
 #fitStationName{display:none}
 .preview-active #scheduleFitToggle{display:none!important}
+</style><style id="larger-font-v8">
+#mainGrid{grid-template-columns:minmax(49px,.67fr) repeat(var(--pairs,3),minmax(0,1fr));column-gap:2px}
+#mainGrid .cell[data-day] .employee-select{font-size:clamp(16px,4.4vw,20px)!important;font-weight:800!important;letter-spacing:-.4px}
+#mainGrid .cell[data-day] .hour-select{font-size:clamp(15px,3.9vw,18px)!important;font-weight:700!important}
+#mainGrid .day-header[data-day]{font-size:clamp(14px,3.8vw,18px)!important}
+#mainGrid .date-label{font-size:clamp(13px,3.5vw,16px)!important;font-weight:700}
+#mainGrid .shift-head{font-size:clamp(14px,3.8vw,18px);font-weight:800}
+#mainGrid .cell[data-day]{margin-left:0;margin-right:0;padding:0}
+#mainGrid .cell select{padding:0;letter-spacing:-.2px}
+.schedule-fit #mainGrid .cell[data-day] .employee-select{font-size:clamp(17px,4.8vw,24px)!important}
+.schedule-fit #mainGrid .cell[data-day] .hour-select{font-size:clamp(16px,4.2vw,21px)!important}
+.schedule-fit #mainGrid .day-header[data-day]{font-size:clamp(15px,4vw,20px)!important}
+.schedule-fit #mainGrid .date-label{font-size:clamp(14px,3.7vw,18px)!important}
+.schedule-fit #mainGrid .shift-head{font-size:clamp(15px,4.1vw,20px)}
+.schedule-fit #fitStationName{font-size:15px}
+.schedule-fit #scheduleFitToggle{font-size:14px}
+@media(max-height:500px) and (orientation:landscape){.schedule-fit #mainGrid .cell[data-day] .employee-select,.schedule-fit #mainGrid .cell[data-day] .hour-select,.schedule-fit #mainGrid .day-header[data-day],.schedule-fit #mainGrid .date-label{font-size:clamp(11px,3.5dvh,17px)!important}}
 </style></head>
 <body>
 
     <div class="app-container" id="appContainer">
         <!-- אזור הצילום המדויק -->
-        <div id="captureArea"><div class="pilot-theme-row"><div class="pilot-note">גרסת ניסיון 7 • עותק נפרד</div><button type="button" id="scheduleFitToggle" aria-pressed="false" title="תצוגת סידור במסך מלא">⛶ מסך מלא</button><button type="button" id="themeToggle" aria-pressed="false">🌙 מצב כהה</button></div>
+        <div id="captureArea"><div class="pilot-theme-row"><div class="pilot-note">גרסת ניסיון 8 • עותק נפרד</div><button type="button" id="scheduleFitToggle" aria-pressed="false" title="תצוגת סידור במסך מלא">⛶ מסך מלא</button><button type="button" id="themeToggle" aria-pressed="false">🌙 מצב כהה</button></div>
             <div class="header-bar" id="headerBar">
                 <div class="text-right font-bold text-slate-800 text-lg">סידור עבודה</div>
                 <div class="text-center font-black text-2xl" id="brandLabel">דור אלון</div>
