@@ -484,12 +484,18 @@ html.schedule-fit,html.schedule-fit body{overflow:hidden;height:100%;overscroll-
 .schedule-fit #fitStationName{font-size:15px}
 .schedule-fit #scheduleFitToggle{font-size:14px}
 @media(max-height:500px) and (orientation:landscape){.schedule-fit #mainGrid .cell[data-day] .employee-select,.schedule-fit #mainGrid .cell[data-day] .hour-select,.schedule-fit #mainGrid .day-header[data-day],.schedule-fit #mainGrid .date-label{font-size:clamp(11px,3.5dvh,17px)!important}}
+</style><style id="clean-day-lines-v9">
+#mainGrid .day-frame{border:0!important;border-radius:0!important;margin:0!important;box-shadow:none!important}
+#mainGrid .cell[data-day]{border-radius:0!important;box-shadow:none!important;margin:0!important}
+#mainGrid .cell[data-day] select{border-radius:0!important;box-shadow:none!important;-webkit-appearance:none!important;appearance:none!important}
+#mainGrid .day-divider{height:3px!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+#mainGrid .day-header[data-day],#mainGrid .header-cell[data-day]:not(.day-header){border-radius:0!important;box-shadow:none!important}
 </style></head>
 <body>
 
     <div class="app-container" id="appContainer">
         <!-- אזור הצילום המדויק -->
-        <div id="captureArea"><div class="pilot-theme-row"><div class="pilot-note">גרסת ניסיון 8 • עותק נפרד</div><button type="button" id="scheduleFitToggle" aria-pressed="false" title="תצוגת סידור במסך מלא">⛶ מסך מלא</button><button type="button" id="themeToggle" aria-pressed="false">🌙 מצב כהה</button></div>
+        <div id="captureArea"><div class="pilot-theme-row"><div class="pilot-note">גרסת ניסיון 9 • עותק נפרד</div><button type="button" id="scheduleFitToggle" aria-pressed="false" title="תצוגת סידור במסך מלא">⛶ מסך מלא</button><button type="button" id="themeToggle" aria-pressed="false">🌙 מצב כהה</button></div>
             <div class="header-bar" id="headerBar">
                 <div class="text-right font-bold text-slate-800 text-lg">סידור עבודה</div>
                 <div class="text-center font-black text-2xl" id="brandLabel">דור אלון</div>
